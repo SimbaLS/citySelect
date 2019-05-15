@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+    
+    <title>初始赋值</title>
+    <link rel="stylesheet" type="text/css" href="css/index.css"/>
+  </head>
+
+  <body>
+    <div id="app">
+      <ul class="privice-Part" v-if="list">
+        <li class="privices" v-for="(item,index) in list" @mouseover="toggleShow($event)" @mouseout="toggleHide($event)">
+          <label>
+						<input type="checkbox" @click="chooseProvince($event,item)" class="privice" :data-name="item.name" v-model="item.hasChecked" :value="item.id"><span>{{item.name}}</span>
+					</label>
+          <!---->
+          <ul class="citys" v-if="item.citylist&&item.citylist.length">
+            <li class="city-part" v-for="(item_c,index_c) in item.citylist">
+              <label><input type="checkbox" class="bigarea" :data-name="item_c.name" :value="item.id" v-model="item_c.hasChecked" @click.stop="chooseCity($event,item_c)"><span v-text="item_c.name">北京市</span></label>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+    <script src="https://yimian-html-original.oss-cn-hangzhou.aliyuncs.com/js/vue2.6.js" type="text/javascript" charset="utf-8"></script>
+    <script type="text/javascript">
+      var vm = new Vue({
+        el: '#app',
+        data: {
+          list: null,
+          city: ["2", "33", "11", "119", "120", "121", "122", "123", "124", "125", "126", "127", "128"], /*所有选中的城市code*/
+          name: ["天津市", "宁波市", "温州市", "嘉兴市", "湖州市", "绍兴市", "金华市", "衢州市", "舟山市", "台州市", "丽水市"] /*选中的城市名称*/
+        },
+        created: function() {
+          var self = this,temp_city = self.city;
+            $.ajax({
+              type: "get",
+              url: "city.json",
+              async: true,
+              dataType: 'json',
+              success: function(data) {
+                if(data) {
+                	 $.each(data, function(index, item) {
+                	 	if ($.inArray(item.id,temp_city)>-1) { /*在数组中*/
+                	 		item.hasChecked = true;
+                	 		$.each(item.citylist, function(index2, item2) {/*子集城市*/
+		                	 	if ($.inArray(item2.id,temp_city)>-1) { /*在数组中设置选中*/
+		                	 		item2.hasChecked = true;
+		                	 	}else{
+		                	 		item2.hasChecked = false;
+		                	 	}
+			                });
+                	 	}else{
+                	 		item.hasChecked = false;
+                	 	}
+	                });
+                  self.list = data;
+                }
+              }
+            });
+        },
+        methods: {
+          toggleShow: function(event) {
+            $('.citys').hide();
+            var el = event.currentTarget;
+            $(el).children('ul.citys').show();
+          },
+          toggleHide: function(event) {
+            var el = event.currentTarget;
+            $(el).children('ul.citys').hide();
+          },
+          chooseProvince: function(event, item) {
+            var el = event.currentTarget,
+              bol = $(el).prop('checked'),
+              self = this,
+              temp_name = self.name,
+              temp_city = self.city;
+            var index = $.inArray(item.id, temp_city),
+              index_name = $.inArray(item.name, temp_name);
+            if(bol) { /*选择*/
+              $(el).parent().next().find('input').prop('checked', true);
+              if(index < 0) {
+                temp_city.push(item.id);
+                self.city = temp_city;
+                temp_name.push(item.name);
+                self.name = temp_name;
+              };
+              if(item.citylist) {
+                $.each(item.citylist, function(index3, item3) {
+                  temp_city.push(item3.id);
+                });
+              };
+            } else {
+              /*取消选择*/
+              if(index > -1) {
+                temp_city.splice(index, 1);
+              };
+              if(index_name > -1) {
+                temp_name.splice(index_name, 1);
+              };
+              $(el).parent().next().find('input').prop('checked', false);
+
+              if(item.citylist) { /*去除省内选择的城市 和 name*/
+                $.each(item.citylist, function(index3, item3) {
+                  var s1 = $.inArray(item3.id, temp_city),
+                    s2 = $.inArray(item3.name, temp_name);
+                  if(s1 > -1) {
+                    temp_city.splice(s1, 1);
+                  };
+                  if(s2 > -1) {
+                    temp_name.splice(s2, 1);
+                  };
+                });
+              };
+            };
+            self.city = temp_city;
+            self.name = temp_name;
+            console.log("city---");
+            console.log(self.city);
+            console.log("name---");
+            console.log(self.name);
+          },
+          chooseCity: function(event, item) {
+            var el = event.currentTarget,
+              bol = $(el).prop('checked'),
+              self = this,
+              temp_city = self.city,
+              temp_name = self.name;
+
+            /*判断同级input是否全部都未选中*/
+            var dom = $(el).parent().parent().parent().find('input'),
+              now_city_index = $.inArray(item.id, temp_city),
+              now_name_index = $.inArray(item.name, temp_name);
+
+            var hasChecked = false,
+              /*true 有选中，false 都未选中*/
+              allChecked = true; /*true 全部选中，false 有未选中*/
+            dom.each(function() {
+              var tempBol = $(this).prop('checked');
+              hasChecked = hasChecked || tempBol;
+              allChecked = allChecked && tempBol;
+            });
+
+            /*父级省份 选中状态*/
+            var domF = $(el).parent().parent().parent().prev().find('input.privice'),
+              isChecked = domF.prop('checked'),
+              dom2_city = domF.val(),
+              /*city*/
+              dom2_name = domF.data('name'),
+              /*name*/
+              dom2_name_index = $.inArray(dom2_name, temp_name),
+              /*城市在city里的位置*/
+              dom2_city_index = $.inArray(dom2_city, temp_city);
+
+            if(bol) { /*当前城市选中*/
+              if(now_city_index < 0) { /*当前city*/
+                temp_city.push(item.id);
+              };
+              if(dom2_city_index < 0) { /*父级city*/
+                temp_city.push(dom2_city);
+              };
+              /*父级是否选中 未选中设置选中 并添加id*/
+              if(!isChecked) { /*选中状态*/
+                domF.prop('checked', true);
+              };
+              /*是否 同级都被选中
+               	是：父级不在name则放入name里 同级name全部移除
+               	否: 父级在name则移除name，当前放入name
+               	*/
+              if(allChecked) {
+                if(dom2_name_index < 0) { /*父级放入name*/
+                  temp_name.push(dom2_name);
+                };
+                dom.each(function() { /*同级移除name*/
+                  var tempName = $(this).data('name'),
+                    tempIndex = $.inArray(tempName, temp_name);
+                  if(tempIndex > -1) { /*选且放入name里*/
+                    temp_name.splice(tempIndex, 1);
+                  };
+                });
+              } else {
+                if(dom2_name_index > -1) {
+                  temp_name.splice(dom2_name_index, 1);
+                };
+                temp_name.push(item.name);
+              }
+            } else {
+              /*取消选择*/
+              if(now_city_index > -1) { /*当前city*/
+                temp_city.splice(now_city_index, 1);
+              };
+              if(now_name_index > -1) { /*当前name*/
+                temp_name.splice(now_name_index, 1);
+              };
+              if(dom2_name_index > -1) { /*父级name*/
+                temp_name.splice(dom2_name_index, 1);
+              };
+              /*是否 同级 全部未选中 hasChecked 
+               	是： 父级移除city
+               	*/
+              if(!hasChecked) { /*全部未选中*/
+                if(dom2_city_index > -1) { /*父级在city 移除*/
+                  temp_city.splice(dom2_city_index, 1);
+                  domF.prop('checked', false);
+                };
+              } else { /*有选中的 放入name*/
+                dom.each(function() {
+                  var tempBol = $(this).prop('checked'),
+                    tempName = $(this).data('name');
+                  if(tempBol && $.inArray(tempName, temp_name) < 0) { /*选且放入name里*/
+                    temp_name.push(tempName);
+                  };
+                });
+              }
+            };
+            self.city = temp_city;
+            self.name = temp_name;
+            console.log("city---");
+            console.log(self.city);
+            console.log("name---");
+            console.log(self.name);
+          }
+        },
+
+      })
+    </script>
+  </body>
+
+</html>
