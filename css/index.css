@@ -1,0 +1,37 @@
+* {
+        margin: 0;
+        padding: 0;
+      }
+      #app{
+      	margin: 20px;
+      }
+      .privice_part{
+      	margin-bottom: 20px;
+      }
+      li {
+        list-style: none;
+      }
+      li.privices {
+        width: 25%;
+        display: inline-block;
+      }
+      .privices {
+        position: relative;
+        /*z-index: 12;*/
+      }
+      .citys {
+        position: absolute;
+        top: 20px;
+        left: 30px;
+        z-index: 20;
+        padding: 0 10px 10px;
+        background: #eee;
+        display: none;
+      }
+      .city-part {
+        width: auto;
+        margin-bottom: 5px;
+      }
+      .value{
+      	color: red;
+      }
